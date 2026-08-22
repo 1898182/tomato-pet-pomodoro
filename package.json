@@ -1,0 +1,85 @@
+{
+	"name": "tomato-pet-pomodoro",
+	"author": {
+		"name": "Pensum",
+		"url": "https://github.com/1898182"
+	},
+	"productName": "Tomato Pet Pomodoro",
+	"version": "0.1.0",
+	"description": "A cross-platform gamified Pomodoro desktop pet with a floating tomato avatar.",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/1898182/tomato-pet-pomodoro.git"
+	},
+	"main": "dist-electron/main/main.js",
+	"private": true,
+	"packageManager": "pnpm@11.19.0",
+	"scripts": {
+		"dev": "node scripts/dev.mjs",
+		"clean": "node scripts/clean-build.mjs",
+		"build": "pnpm run clean && pnpm run typecheck && vite build && tsc -p tsconfig.electron.json",
+		"dist": "pnpm run build && electron-builder",
+		"generate:assets": "python scripts/create-tomato-assets.py",
+		"generate:audio": "node scripts/generate-focus-audio.mjs",
+		"test": "vitest run",
+		"typecheck": "tsc --noEmit && tsc -p tsconfig.electron.json --noEmit"
+	},
+	"dependencies": {
+		"lucide-react": "^1.33.0",
+		"pixi.js": "^8.14.0",
+		"react": "^19.2.3",
+		"react-dom": "^19.2.3",
+		"sql.js": "^1.13.0"
+	},
+	"devDependencies": {
+		"@types/node": "^24.10.1",
+		"@types/react": "^19.2.7",
+		"@types/react-dom": "^19.2.3",
+		"@types/sql.js": "^1.4.9",
+		"@vitejs/plugin-react": "^5.1.2",
+		"electron": "^39.2.7",
+		"electron-builder": "^26.0.12",
+		"typescript": "^5.9.3",
+		"vite": "^7.2.7",
+		"vitest": "^4.0.15"
+	},
+	"build": {
+		"appId": "dev.tomato-pet.pomodoro",
+		"productName": "Tomato Pet Pomodoro",
+		"directories": {
+			"output": "release"
+		},
+		"files": [
+			"dist-electron/**/*",
+			"dist-renderer/**/*",
+			"public/assets/**/*",
+			"node_modules/sql.js/dist/sql-wasm.wasm",
+			"package.json"
+		],
+		"extraMetadata": {
+			"main": "dist-electron/main/main.js"
+		},
+		"win": {
+			"icon": "public/assets/app-icon.ico",
+			"target": [
+				"nsis"
+			]
+		},
+		"nsis": {
+			"shortcutName": "Tomato Pet Pomodoro"
+		},
+		"mac": {
+			"icon": "public/assets/app-icon.icns",
+			"target": [
+				"dmg"
+			]
+		},
+		"linux": {
+			"icon": "public/assets/app-icon.png",
+			"target": [
+				"AppImage",
+				"deb"
+			]
+		}
+	}
+}

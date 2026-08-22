@@ -1,0 +1,41 @@
+{
+  "id": "tomato",
+  "name": "Tomato",
+  "version": 2,
+  "defaultScale": 1,
+  "spriteSheet": "/assets/pets/tomato/sprites/tomato-sprite-sheet.png",
+  "sourceFrameSize": {
+    "width": 512,
+    "height": 512
+  },
+  "states": {
+    "sleeping": {
+      "animation": "sleeping",
+      "spriteSheet": "/assets/pets/tomato/sprites/tomato-sprite-sheet.png",
+      "frameDurationMs": 900,
+      "frames": [
+        { "x": 0, "y": 0, "width": 512, "height": 512 },
+        { "x": 512, "y": 0, "width": 512, "height": 512 }
+      ]
+    },
+    "working": {
+      "animation": "working",
+      "spriteSheet": "/assets/pets/tomato/sprites/tomato-sprite-sheet.png",
+      "frameDurationMs": 700,
+      "frames": [
+        { "x": 1024, "y": 0, "width": 512, "height": 512 },
+        { "x": 1536, "y": 0, "width": 512, "height": 512 }
+      ]
+    },
+    "playing": {
+      "animation": "playing",
+      "spriteSheet": "/assets/pets/tomato/sprites/tomato-sprite-sheet.png",
+      "frameDurationMs": 380,
+      "frames": [
+        { "x": 2048, "y": 0, "width": 512, "height": 512 },
+        { "x": 2560, "y": 0, "width": 512, "height": 512 }
+      ]
+    }
+  },
+  "slots": ["head", "body", "desk", "background"]
+}

@@ -1,0 +1,17 @@
+{
+  "version": 2,
+  "items": [
+    { "id": "tiny-glasses", "name": "Tiny Glasses", "description": "Studious little frames for focused tomatoes.", "tier": "common", "type": "wearable", "slot": "head", "priceSeeds": 100, "requiredLevel": 2, "assetPath": null },
+    { "id": "bow", "name": "Bow", "description": "A cheerful bow for the tomato's outfit.", "tier": "common", "type": "wearable", "slot": "body", "priceSeeds": 100, "requiredLevel": 2, "assetPath": null },
+    { "id": "coffee-mug", "name": "Coffee Mug", "description": "A warm desk-side focus companion.", "tier": "common", "type": "desk", "slot": "desk", "priceSeeds": 100, "requiredLevel": 2, "assetPath": null },
+    { "id": "baseball-cap", "name": "Baseball Cap", "description": "A casual cap for productive afternoons.", "tier": "uncommon", "type": "wearable", "slot": "head", "priceSeeds": 250, "requiredLevel": 5, "assetPath": null },
+    { "id": "headphones", "name": "Headphones", "description": "A visual reminder that focus mode is on.", "tier": "uncommon", "type": "wearable", "slot": "head", "priceSeeds": 250, "requiredLevel": 5, "assetPath": null },
+    { "id": "succulent", "name": "Succulent", "description": "A tiny desk plant that never needs watering.", "tier": "uncommon", "type": "desk", "slot": "desk", "priceSeeds": 250, "requiredLevel": 5, "assetPath": null },
+    { "id": "chef-hat", "name": "Chef Hat", "description": "For tomatoes cooking up their best work.", "tier": "rare", "type": "wearable", "slot": "head", "priceSeeds": 600, "requiredLevel": 10, "assetPath": null },
+    { "id": "lofi-rain", "name": "Lofi Rain", "description": "A future mellow focus-audio unlock.", "tier": "rare", "type": "audio", "slot": "audio", "priceSeeds": 600, "requiredLevel": 10, "assetPath": null },
+    { "id": "sleeping-animation", "name": "Cozy Sleeping Animation", "description": "A future extra animation for idle time.", "tier": "epic", "type": "animation", "slot": "animation", "priceSeeds": 1500, "requiredLevel": 25, "assetPath": null },
+    { "id": "golden-stem", "name": "Golden Stem", "description": "A prestigious golden tomato stem.", "tier": "epic", "type": "wearable", "slot": "head", "priceSeeds": 1500, "requiredLevel": 35, "assetPath": null },
+    { "id": "crown", "name": "Crown", "description": "A Level 50 mark of focus mastery.", "tier": "epic", "type": "wearable", "slot": "head", "priceSeeds": 1500, "requiredLevel": 50, "assetPath": null },
+    { "id": "streak-shield", "name": "Streak Shield", "description": "A future consumable that protects one missed day.", "tier": "consumable", "type": "consumable", "slot": null, "priceSeeds": 200, "requiredLevel": 5, "assetPath": null }
+  ]
+}
