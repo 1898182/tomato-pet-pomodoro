@@ -1,4 +1,5 @@
 import { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, nativeImage, Notification, powerMonitor, screen, shell, Tray } from "electron";
+import type { IpcMainInvokeEvent, WebContents } from "electron";
 import fs from "node:fs";
 import path from "node:path";
 import { unlockCatalog, validateCatalogManifest } from "../shared/catalog";
@@ -10,6 +11,7 @@ import { isPointInInteractiveRegions, normalizeInteractiveRegions } from "./serv
 import { DatabaseService } from "./services/database";
 import { resolveAvatarMode } from "./services/avatarVisibility";
 import { loadPetAssetBundle } from "./services/petAssets";
+import { isTrustedRendererUrl, validateDevServerUrl } from "./services/rendererSecurity";
 import { TimerEngine } from "./services/timerEngine";
 import { clampToWorkArea, getBottomRightBounds } from "./services/windowBounds";
 
@@ -28,7 +30,8 @@ let avatarIgnoringMouse = false;
 let avatarMousePoll: NodeJS.Timeout | null = null;
 let idlePoll: NodeJS.Timeout | null = null;
 
-const isDev = Boolean(process.env.VITE_DEV_SERVER_URL);
+const devServerUrl = process.env.VITE_DEV_SERVER_URL ? validateDevServerUrl(process.env.VITE_DEV_SERVER_URL) : undefined;
+const isDev = Boolean(devServerUrl);
 const AVATAR_COLLAPSED_SIZE = { width: 280, height: 280 };
 const AVATAR_EXPANDED_SIZE = { width: 400, height: 243 };
 const AVATAR_MINI_SIZE = { width: 178, height: 48 };
@@ -94,6 +97,7 @@ function createAvatarWindow() {
     avatarIgnoringMouse = false;
   });
   avatarWindow.webContents.on("did-start-loading", () => { avatarRendererReady = false; });
+  configureRendererSecurity(avatarWindow);
   loadRenderer(avatarWindow, "avatar");
 }
 
@@ -133,12 +137,15 @@ function createSettingsWindow() {
   settingsWindow.on("closed", () => {
     settingsWindow = null;
   });
+  configureRendererSecurity(settingsWindow);
   loadRenderer(settingsWindow, "settings");
 }
 
 function loadRenderer(window: BrowserWindow, surface: "avatar" | "settings") {
-  if (isDev && process.env.VITE_DEV_SERVER_URL) {
-    window.loadURL(`${process.env.VITE_DEV_SERVER_URL}?surface=${surface}`);
+  if (devServerUrl) {
+    const rendererUrl = new URL(devServerUrl);
+    rendererUrl.searchParams.set("surface", surface);
+    window.loadURL(rendererUrl.toString());
     return;
   }
   window.loadFile(path.join(app.getAppPath(), "dist-renderer", "index.html"), {
@@ -189,14 +196,14 @@ function updateTray(snapshot: TimerSnapshot) {
 }
 
 function registerIpc() {
-  ipcMain.handle("app:quit", () => app.quit());
-  ipcMain.handle("app:open-external", (_event, url: string) => {
+  handleTrusted("app:quit", () => app.quit());
+  handleTrusted("app:open-external", (_event, url: string) => {
     const allowedUrls = new Set([DONATION_URL, `mailto:${SUPPORT_EMAIL}`]);
     if (!allowedUrls.has(url)) throw new Error("That external destination is not allowed.");
     return shell.openExternal(url);
   });
 
-  ipcMain.handle("assets:get-pet", (_event, petId: string) => {
+  handleTrusted("assets:get-pet", (_event, petId: string) => {
     if (!isSafeIdentifier(petId)) throw new Error("Pet ID is invalid.");
     const assetRoot = isDev
       ? path.join(app.getAppPath(), "public", "assets")
@@ -204,59 +211,59 @@ function registerIpc() {
     return loadPetAssetBundle(assetRoot, petId);
   });
 
-  ipcMain.handle("timer:get-state", () => timer.getState());
-  ipcMain.handle("timer:start-focus", () => timer.startFocus());
-  ipcMain.handle("timer:start-break", (_event, phase: unknown) => {
+  handleTrusted("timer:get-state", () => timer.getState());
+  handleTrusted("timer:start-focus", () => timer.startFocus());
+  handleTrusted("timer:start-break", (_event, phase: unknown) => {
     if (phase !== "short_break" && phase !== "long_break") throw new Error("Break phase is invalid.");
     return timer.startBreak(phase);
   });
-  ipcMain.handle("timer:pause", () => timer.pause());
-  ipcMain.handle("timer:resume", () => timer.resume());
-  ipcMain.handle("timer:stop", () => timer.stop());
-  ipcMain.handle("timer:update-task", (_event, text: unknown) => {
+  handleTrusted("timer:pause", () => timer.pause());
+  handleTrusted("timer:resume", () => timer.resume());
+  handleTrusted("timer:stop", () => timer.stop());
+  handleTrusted("timer:update-task", (_event, text: unknown) => {
     if (typeof text !== "string") throw new Error("Task text must be a string.");
     return timer.updateTask(text);
   });
 
-  ipcMain.handle("presets:list", () => database.listPresets());
-  ipcMain.handle("presets:select", (_event, presetId: string) => timer.selectPreset(presetId));
-  ipcMain.handle("presets:create", (_event, preset: TimerPresetDraft) => timer.createCustomPreset(preset));
-  ipcMain.handle("presets:remove", (_event, presetId: string) => timer.removePreset(presetId));
-  ipcMain.handle("presets:reset", () => timer.resetPresets());
-  ipcMain.handle("progression:get-profile", () => database.getProfile());
-  ipcMain.handle("progression:get-summary", () => database.getProgressionSummary());
-  ipcMain.handle("progression:renderer-ready", (event) => {
+  handleTrusted("presets:list", () => database.listPresets());
+  handleTrusted("presets:select", (_event, presetId: string) => timer.selectPreset(presetId));
+  handleTrusted("presets:create", (_event, preset: TimerPresetDraft) => timer.createCustomPreset(preset));
+  handleTrusted("presets:remove", (_event, presetId: string) => timer.removePreset(presetId));
+  handleTrusted("presets:reset", () => timer.resetPresets());
+  handleTrusted("progression:get-profile", () => database.getProfile());
+  handleTrusted("progression:get-summary", () => database.getProgressionSummary());
+  handleTrusted("progression:renderer-ready", (event) => {
     if (!avatarWindow || avatarWindow.isDestroyed() || avatarWindow.webContents.id !== event.sender.id) return;
     avatarRendererReady = true;
     pendingAvatarProgression.forEach((update) => avatarWindow?.webContents.send("progression:changed", update));
     pendingAvatarProgression = [];
   });
-  ipcMain.handle("progression:pet-current-break", () => {
+  handleTrusted("progression:pet-current-break", () => {
     const result = timer.petCurrentBreak();
     return { ...result, summary: database.getProgressionSummary() };
   });
-  ipcMain.handle("analytics:get-overview", (_event, weeks?: number) => database.getAnalyticsOverview(weeks));
-  ipcMain.handle("catalog:list", () => {
+  handleTrusted("analytics:get-overview", (_event, weeks?: number) => database.getAnalyticsOverview(weeks));
+  handleTrusted("catalog:list", () => {
     const assetRoot = isDev ? path.join(app.getAppPath(), "public", "assets") : path.join(app.getAppPath(), "dist-renderer", "assets");
     const manifest = validateCatalogManifest(JSON.parse(fs.readFileSync(path.join(assetRoot, "items", "items.json"), "utf8")));
     return unlockCatalog(manifest, database.getProfile().currentLevel);
   });
 
-  ipcMain.handle("settings:get", () => database.getSettings());
-  ipcMain.handle("settings:update", (_event, partial: Partial<AppSettings>) => {
+  handleTrusted("settings:get", () => database.getSettings());
+  handleTrusted("settings:update", (_event, partial: Partial<AppSettings>) => {
     const next = database.updateSettings(partial);
     applyLaunchAtStartup(next.launchAtStartup);
     sendSettingsChanged(next);
     applyAvatarMode(timer.getState());
     return next;
   });
-  ipcMain.handle("settings:open", () => createSettingsWindow());
+  handleTrusted("settings:open", () => createSettingsWindow());
 
-  ipcMain.handle("data:export", () => database.exportData());
-  ipcMain.handle("data:copy-export", () => {
+  handleTrusted("data:export", () => database.exportData());
+  handleTrusted("data:copy-export", () => {
     clipboard.writeText(JSON.stringify(database.exportData(), null, 2));
   });
-  ipcMain.handle("data:import", (_event, payload: ExportEnvelope) => {
+  handleTrusted("data:import", (_event, payload: ExportEnvelope) => {
     if (timer.getState().phase !== "idle") {
       throw new Error("Stop the current timer before importing preferences.");
     }
@@ -269,8 +276,8 @@ function registerIpc() {
     return imported;
   });
 
-  ipcMain.handle("avatar:get-bounds", () => avatarWindow?.getBounds() ?? { x: 0, y: 0, ...AVATAR_COLLAPSED_SIZE });
-  ipcMain.handle("avatar:set-position", (_event, x: number, y: number) => {
+  handleTrusted("avatar:get-bounds", () => avatarWindow?.getBounds() ?? { x: 0, y: 0, ...AVATAR_COLLAPSED_SIZE });
+  handleTrusted("avatar:set-position", (_event, x: number, y: number) => {
     if (!Number.isFinite(x) || !Number.isFinite(y)) throw new Error("Avatar position is invalid.");
     if (!avatarWindow) {
       return { x, y };
@@ -281,7 +288,7 @@ function registerIpc() {
     database.saveAvatarPosition(next.x, next.y, next.displayId);
     return { x: next.x, y: next.y };
   });
-  ipcMain.handle("avatar:set-expanded", (_event, expanded: boolean) => {
+  handleTrusted("avatar:set-expanded", (_event, expanded: boolean) => {
     if (!avatarWindow || avatarWindow.isDestroyed()) {
       return { x: 0, y: 0, ...(expanded ? AVATAR_EXPANDED_SIZE : AVATAR_COLLAPSED_SIZE) };
     }
@@ -294,18 +301,48 @@ function registerIpc() {
     database.saveAvatarPosition(next.x, next.y, next.displayId);
     return { x: next.x, y: next.y, ...size };
   });
-  ipcMain.handle("avatar:hide", () => avatarWindow?.hide());
-  ipcMain.handle("avatar:set-interactive-regions", (event, regions: unknown) => {
+  handleTrusted("avatar:hide", () => avatarWindow?.hide());
+  handleTrusted("avatar:set-interactive-regions", (event, regions: unknown) => {
     if (!isAvatarRenderer(event.sender.id)) return;
     avatarInteractiveRegions = normalizeInteractiveRegions(regions);
     updateAvatarMousePassthrough();
   });
-  ipcMain.handle("avatar:set-interaction-active", (event, active: unknown) => {
+  handleTrusted("avatar:set-interaction-active", (event, active: unknown) => {
     if (!isAvatarRenderer(event.sender.id)) return;
     avatarInteractionActive = active === true;
     updateAvatarMousePassthrough();
   });
-  ipcMain.handle("avatar:get-mode", () => avatarMode);
+  handleTrusted("avatar:get-mode", () => avatarMode);
+}
+
+function handleTrusted(channel: string, handler: (event: IpcMainInvokeEvent, ...args: any[]) => unknown) {
+  ipcMain.handle(channel, (event, ...args) => {
+    assertTrustedRenderer(event.sender);
+    return handler(event, ...args);
+  });
+}
+
+function assertTrustedRenderer(sender: WebContents) {
+  const belongsToAppWindow = [avatarWindow, settingsWindow].some((window) =>
+    window && !window.isDestroyed() && !window.webContents.isDestroyed() && window.webContents.id === sender.id
+  );
+  if (!belongsToAppWindow || !isTrustedRendererUrl(sender.getURL(), getRendererLocationPolicy())) {
+    throw new Error("IPC request rejected from an untrusted renderer.");
+  }
+}
+
+function configureRendererSecurity(window: BrowserWindow) {
+  window.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
+  window.webContents.on("will-navigate", (event, url) => {
+    if (!isTrustedRendererUrl(url, getRendererLocationPolicy())) event.preventDefault();
+  });
+}
+
+function getRendererLocationPolicy() {
+  return {
+    devServerUrl,
+    productionEntryPath: path.join(app.getAppPath(), "dist-renderer", "index.html")
+  };
 }
 
 function isAvatarRenderer(webContentsId: number) {

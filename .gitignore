@@ -6,3 +6,14 @@ release/
 *.sqlite
 *.sqlite-shm
 *.sqlite-wal
+.env
+.env.*
+!.env.example
+electron-builder.env
+*.pfx
+*.p12
+*.pem
+*.key
+*.crt
+*.cer
+*.mobileprovision
