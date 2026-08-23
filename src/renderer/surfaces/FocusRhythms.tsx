@@ -1,5 +1,5 @@
 import { Plus, RotateCcw, Trash2, X } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MAX_PRESET_NAME_LENGTH, MAX_VISIBLE_PRESETS, PRESET_LIMITS } from "../../shared/timerPresets";
 import type { TimerPreset, TimerPresetDraft } from "../../shared/types";
 
@@ -118,13 +118,14 @@ function DurationInput({ label, field, value, onChange }: { label: string; field
 }
 
 function useDialogKeyboard(onCancel: () => void, initialFocus: React.RefObject<HTMLElement | null>) {
-  const close = useCallback(onCancel, [onCancel]);
+  const closeRef = useRef(onCancel);
+  closeRef.current = onCancel;
   useEffect(() => {
     initialFocus.current?.focus();
-    function handleKeyDown(event: KeyboardEvent) { if (event.key === "Escape") close(); }
+    function handleKeyDown(event: KeyboardEvent) { if (event.key === "Escape") closeRef.current(); }
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [close, initialFocus]);
+  }, [initialFocus]);
 }
 
 export function parseDurationInputValue(value: string) { return value === "" ? 0 : Number(value); }

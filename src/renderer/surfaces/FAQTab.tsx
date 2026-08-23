@@ -9,10 +9,10 @@ export const FAQ_ITEMS = [
   { question: "What does Start next session automatically change?", answer: "When enabled, the next focus or break starts immediately after the current session completes. When disabled, Tomato Pet waits for you to start the suggested next session." },
   { question: "What does Hide pet during focus do?", answer: "Stealth mode replaces the full pet with a compact timer near the taskbar during focus. The full pet returns for breaks and whenever the next break is waiting to start." },
   { question: "How do notifications and sounds work?", answer: "Desktop notifications announce completed sessions. Completion sound controls the system chime, while pet interaction sounds control the small poke sound." },
-  { question: "What is Focus audio?", answer: "Focus audio automatically plays your selected brown-noise or gentle-rain soundscape during active focus and stops for pauses, completed sessions, and breaks. The volume slider only affects that soundscape." },
+  { question: "What is Ambient focus sound?", answer: "Ambient focus sound plays your selected brown-noise or gentle-rain soundscape as a quiet background during active focus. It stops for pauses, completed sessions, and breaks, and its volume control does not affect other application sounds." },
   { question: "What does Launch at startup do?", answer: "It starts Tomato Pet when you sign in to your computer. This setting is optional and can be changed at any time." },
   { question: "How do XP, Seeds, levels, and streaks work?", answer: "Focused minutes earn permanent Lifetime XP and spendable Seeds. Levels are based on Lifetime XP and never decrease. Completing focus sessions on consecutive local calendar days grows your streak and can improve rewards." },
-  { question: "Can I move my settings to another device?", answer: "Yes. Copy your preference export and import it on the other device. It includes settings, focus rhythms, and avatar position, but intentionally excludes XP, Seeds, sessions, inventory, and progression." },
+  { question: "Can I move my settings to another device?", answer: "Yes. Export a preference file and import it on the other device. It includes settings, focus rhythms, and avatar position, but intentionally excludes XP, Seeds, sessions, inventory, and progression." },
   { question: "Will there be more avatars?", answer: "Yes. The tomato is the first pet, and more avatars and customization options are planned for future releases." }
 ] as const;
 

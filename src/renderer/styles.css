@@ -330,6 +330,17 @@ button:disabled {
   line-height: 1.15;
 }
 
+.bubble-actions .action-icon-button {
+  flex: 0 0 28px;
+  width: 28px;
+  padding: 5px;
+}
+
+.action-icon-button svg {
+  width: 14px;
+  height: 14px;
+}
+
 @keyframes bubble-float {
   0%, 100% {
     transform: translateY(0);
@@ -1151,7 +1162,26 @@ button:disabled {
 .audio-options input[type="range"] {
   grid-column: 1 / -1;
   width: 100%;
+  min-width: 0;
+  margin: 0;
   accent-color: #4f8a45;
+}
+
+.audio-volume-control {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 5px 8px;
+  min-width: 0;
+  padding: 2px 3px 0;
+  color: #80675d;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.audio-volume-control output {
+  color: #4f6f45;
+  font-variant-numeric: tabular-nums;
 }
 
 .stats-view,

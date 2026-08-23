@@ -1,6 +1,6 @@
 import "pixi.js/unsafe-eval";
 import { Application, Assets, Graphics, Rectangle, Sprite, Texture } from "pixi.js";
-import { Pause, Square, Volume2, VolumeX } from "lucide-react";
+import { Pause, Power, Square, Volume2, VolumeX } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { PetManifest } from "../../shared/petManifest";
 import { validatePetManifest } from "../../shared/petManifest";
@@ -58,8 +58,8 @@ function FullAvatar({ state, settings, rewards }: { state: TimerSnapshot; settin
   const appRef = useRef<Application | null>(null);
   const petStateRef = useRef<PetState>(state.petState);
   const pokeStartedRef = useRef(0);
-  const [bubbleOpen, setBubbleOpen] = useState(false);
-  const [controlsOpen, setControlsOpen] = useState(false);
+  const [bubbleOpen, setBubbleOpen] = useState(true);
+  const [controlsOpen, setControlsOpen] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   petStateRef.current = state.petState;
 
@@ -108,10 +108,14 @@ function FullAvatar({ state, settings, rewards }: { state: TimerSnapshot; settin
     }
   }, [settings.petSoundsEnabled, state.phase]);
 
-  const openBubble = useCallback(() => { setBubbleOpen((value) => !value); setControlsOpen(false); }, []);
+  const toggleBubbles = useCallback(() => {
+    const shouldOpen = !bubbleOpen;
+    setBubbleOpen(shouldOpen);
+    setControlsOpen(shouldOpen);
+  }, [bubbleOpen]);
   const toggleControls = useCallback(() => setControlsOpen((value) => !value), []);
   useEffect(() => { window.tomatoPet.avatar.setExpanded(bubbleOpen); }, [bubbleOpen]);
-  usePetGesture(dragTargetRef, poke, openBubble);
+  usePetGesture(dragTargetRef, poke, toggleBubbles);
   useInteractiveRegions(surfaceRef);
 
   return (
@@ -166,8 +170,9 @@ function TimerBubble({ state, settings, controlsOpen, onToggleControls }: { stat
               {(state.phase === "focus" || state.phase === "short_break" || state.phase === "long_break") && <button tabIndex={controlsOpen ? 0 : -1} onClick={() => window.tomatoPet.timer.pause()}>Pause</button>}
               {state.phase === "paused" && <button tabIndex={controlsOpen ? 0 : -1} onClick={() => window.tomatoPet.timer.resume()}>Resume</button>}
               {state.phase !== "idle" && <button tabIndex={controlsOpen ? 0 : -1} onClick={() => window.tomatoPet.timer.stop()}>Stop</button>}
-              <button tabIndex={controlsOpen ? 0 : -1} title="Toggle focus audio" onClick={() => window.tomatoPet.settings.update({ focusAudioEnabled: !settings.focusAudioEnabled })}>{settings.focusAudioEnabled ? "Mute audio" : "Focus audio"}</button>
+              <button tabIndex={controlsOpen ? 0 : -1} title="Toggle ambient focus sound" onClick={() => window.tomatoPet.settings.update({ focusAudioEnabled: !settings.focusAudioEnabled })}>{settings.focusAudioEnabled ? "Mute sound" : "Ambient sound"}</button>
               <button tabIndex={controlsOpen ? 0 : -1} onClick={() => window.tomatoPet.settings.open()}>Settings</button>
+              <button type="button" className="action-icon-button" tabIndex={controlsOpen ? 0 : -1} title="Quit Tomato Pet" aria-label="Quit Tomato Pet" onClick={() => window.tomatoPet.app.quit()}><Power aria-hidden="true" /></button>
             </div>
           </section>
         </div>
@@ -185,7 +190,7 @@ function MiniTimer({ state, settings, rewards }: { state: TimerSnapshot; setting
     <div className="mini-actions">
       <button type="button" title="Pause timer" aria-label="Pause timer" onClick={() => window.tomatoPet.timer.pause()}><Pause aria-hidden="true" /></button>
       <button type="button" title="Stop timer" aria-label="Stop timer" onClick={() => window.tomatoPet.timer.stop()}><Square aria-hidden="true" /></button>
-      <button type="button" title={settings.focusAudioEnabled ? "Mute focus audio" : "Enable focus audio"} aria-label={settings.focusAudioEnabled ? "Mute focus audio" : "Enable focus audio"}
+      <button type="button" title={settings.focusAudioEnabled ? "Mute ambient focus sound" : "Enable ambient focus sound"} aria-label={settings.focusAudioEnabled ? "Mute ambient focus sound" : "Enable ambient focus sound"}
         onClick={() => window.tomatoPet.settings.update({ focusAudioEnabled: !settings.focusAudioEnabled })}>
         {settings.focusAudioEnabled ? <VolumeX aria-hidden="true" /> : <Volume2 aria-hidden="true" />}
       </button>

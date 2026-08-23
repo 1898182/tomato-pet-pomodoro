@@ -185,6 +185,7 @@ export type ExportEnvelopeV3 = {
 export type ExportEnvelope = ExportEnvelopeV2 | ExportEnvelopeV3;
 
 export type IpcUnsubscribe = () => void;
+export type PreferenceFileResult = { canceled: boolean; filePath: string | null };
 
 export type ElectronApi = {
   app: {
@@ -231,9 +232,8 @@ export type ElectronApi = {
     onChanged: (callback: (settings: AppSettings) => void) => IpcUnsubscribe;
   };
   data: {
-    export: () => Promise<ExportEnvelope>;
-    copyExport: () => Promise<void>;
-    import: (payload: ExportEnvelope) => Promise<ExportEnvelope>;
+    exportToFile: () => Promise<PreferenceFileResult>;
+    importFromFile: () => Promise<PreferenceFileResult>;
   };
   avatar: {
     getBounds: () => Promise<{ x: number; y: number; width: number; height: number }>;

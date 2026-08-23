@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from "electron";
-import type { AppSettings, AvatarDisplayMode, ElectronApi, ExportEnvelope, ProgressionUpdate, TimerSnapshot } from "../shared/types";
+import type { AppSettings, AvatarDisplayMode, ElectronApi, ProgressionUpdate, TimerSnapshot } from "../shared/types";
 
 const api: ElectronApi = {
   app: {
@@ -58,9 +58,8 @@ const api: ElectronApi = {
     }
   },
   data: {
-    export: () => ipcRenderer.invoke("data:export"),
-    copyExport: () => ipcRenderer.invoke("data:copy-export"),
-    import: (payload: ExportEnvelope) => ipcRenderer.invoke("data:import", payload)
+    exportToFile: () => ipcRenderer.invoke("data:export-file"),
+    importFromFile: () => ipcRenderer.invoke("data:import-file")
   },
   avatar: {
     getBounds: () => ipcRenderer.invoke("avatar:get-bounds"),

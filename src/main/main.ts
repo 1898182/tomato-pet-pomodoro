@@ -1,5 +1,5 @@
-import { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, nativeImage, Notification, powerMonitor, screen, shell, Tray } from "electron";
-import type { IpcMainInvokeEvent, WebContents } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, Notification, powerMonitor, screen, shell, Tray } from "electron";
+import type { IpcMainInvokeEvent, OpenDialogOptions, SaveDialogOptions, WebContents } from "electron";
 import fs from "node:fs";
 import path from "node:path";
 import { unlockCatalog, validateCatalogManifest } from "../shared/catalog";
@@ -259,21 +259,35 @@ function registerIpc() {
   });
   handleTrusted("settings:open", () => createSettingsWindow());
 
-  handleTrusted("data:export", () => database.exportData());
-  handleTrusted("data:copy-export", () => {
-    clipboard.writeText(JSON.stringify(database.exportData(), null, 2));
+  handleTrusted("data:export-file", async () => {
+    const options: SaveDialogOptions = {
+      title: "Export Tomato Pet preferences",
+      defaultPath: path.join(app.getPath("documents"), "tomato-pet-preferences.json"),
+      filters: [{ name: "JSON files", extensions: ["json"] }]
+    };
+    const result = settingsWindow && !settingsWindow.isDestroyed()
+      ? await dialog.showSaveDialog(settingsWindow, options)
+      : await dialog.showSaveDialog(options);
+    if (result.canceled || !result.filePath) return { canceled: true, filePath: null };
+    await fs.promises.writeFile(result.filePath, JSON.stringify(database.exportData(), null, 2), "utf8");
+    return { canceled: false, filePath: result.filePath };
   });
-  handleTrusted("data:import", (_event, payload: ExportEnvelope) => {
-    if (timer.getState().phase !== "idle") {
-      throw new Error("Stop the current timer before importing preferences.");
-    }
-    const imported = database.importData(payload);
-    timer.selectPreset(imported.selectedPresetId);
-    const settings = database.getSettings();
-    applyLaunchAtStartup(settings.launchAtStartup);
-    sendSettingsChanged(settings);
-    applyAvatarMode(timer.getState());
-    return imported;
+  handleTrusted("data:import-file", async () => {
+    if (timer.getState().phase !== "idle") throw new Error("Stop the current timer before importing preferences.");
+    const options: OpenDialogOptions = {
+      title: "Import Tomato Pet preferences",
+      properties: ["openFile"],
+      filters: [{ name: "JSON files", extensions: ["json"] }]
+    };
+    const result = settingsWindow && !settingsWindow.isDestroyed()
+      ? await dialog.showOpenDialog(settingsWindow, options)
+      : await dialog.showOpenDialog(options);
+    const filePath = result.filePaths[0];
+    if (result.canceled || !filePath) return { canceled: true, filePath: null };
+    if ((await fs.promises.stat(filePath)).size > 1_000_000) throw new Error("The preferences file is too large.");
+    const payload = JSON.parse(await fs.promises.readFile(filePath, "utf8")) as ExportEnvelope;
+    importPreferences(payload);
+    return { canceled: false, filePath };
   });
 
   handleTrusted("avatar:get-bounds", () => avatarWindow?.getBounds() ?? { x: 0, y: 0, ...AVATAR_COLLAPSED_SIZE });
@@ -347,6 +361,17 @@ function getRendererLocationPolicy() {
 
 function isAvatarRenderer(webContentsId: number) {
   return Boolean(avatarWindow && !avatarWindow.isDestroyed() && !avatarWindow.webContents.isDestroyed() && avatarWindow.webContents.id === webContentsId);
+}
+
+function importPreferences(payload: ExportEnvelope) {
+  if (timer.getState().phase !== "idle") throw new Error("Stop the current timer before importing preferences.");
+  const imported = database.importData(payload);
+  timer.selectPreset(imported.selectedPresetId);
+  const settings = database.getSettings();
+  applyLaunchAtStartup(settings.launchAtStartup);
+  sendSettingsChanged(settings);
+  applyAvatarMode(timer.getState());
+  return imported;
 }
 
 function updateAvatarMousePassthrough() {

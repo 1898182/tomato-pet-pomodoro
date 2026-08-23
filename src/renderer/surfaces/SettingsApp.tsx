@@ -71,9 +71,21 @@ export function SettingsApp() {
   async function createCustomPreset(draft: TimerPresetDraft) { if (timerActive) return "Stop the timer before creating a rhythm."; try { await window.tomatoPet.presets.create(draft); setPresets(await window.tomatoPet.presets.list()); showStatus("Custom rhythm created"); return null; } catch (error) { return errorMessage(error); } }
   async function removePreset(id: string) { if (timerActive) { showStatus("Stop timer first"); return false; } try { await window.tomatoPet.presets.remove(id); setPresets(await window.tomatoPet.presets.list()); showStatus("Rhythm removed"); return true; } catch (error) { showStatus(errorMessage(error)); return false; } }
   async function resetPresets() { if (timerActive) { showStatus("Stop timer first"); return false; } try { await window.tomatoPet.presets.reset(); setPresets(await window.tomatoPet.presets.list()); showStatus("Focus cycles reset"); return true; } catch (error) { showStatus(errorMessage(error)); return false; } }
-  async function exportData() { await window.tomatoPet.data.copyExport(); showStatus("Preferences copied"); }
-  async function importData() { if (timerActive) return showStatus("Stop timer first"); const text = window.prompt("Paste exported Tomato Pet preferences JSON"); if (!text) return;
-    try { await window.tomatoPet.data.import(JSON.parse(text)); const [nextSettings, nextPresets] = await Promise.all([window.tomatoPet.settings.get(), window.tomatoPet.presets.list()]); setSettings(nextSettings); setPresets(nextPresets); showStatus("Preferences imported"); } catch (error) { showStatus(errorMessage(error)); } }
+  async function exportData() {
+    try {
+      const result = await window.tomatoPet.data.exportToFile();
+      if (!result.canceled) showStatus("Preferences saved to file");
+    } catch (error) { showStatus(errorMessage(error)); }
+  }
+  async function importData() {
+    if (timerActive) return showStatus("Stop timer first");
+    try {
+      const result = await window.tomatoPet.data.importFromFile();
+      if (result.canceled) return;
+      const [nextSettings, nextPresets] = await Promise.all([window.tomatoPet.settings.get(), window.tomatoPet.presets.list()]);
+      setSettings(nextSettings); setPresets(nextPresets); showStatus("Preferences imported");
+    } catch (error) { showStatus(errorMessage(error)); }
+  }
 
   if (loadError) {
     return <main className="settings-shell"><section className="settings-section" role="alert"><h1>Settings could not load</h1><p>{loadError}</p><button type="button" onClick={() => setLoadAttempt((attempt) => attempt + 1)}>Try again</button></section></main>;
@@ -139,10 +151,10 @@ function SettingsTab(props: { settings: AppSettings; presets: TimerPreset[]; tim
       <Toggle label="Completion sound" detail="Play the operating-system completion sound." checked={settings.completionSoundsEnabled} onChange={(value) => props.onUpdate({ completionSoundsEnabled: value })} />
       <Toggle label="Pet interaction sounds" detail="Play a small pop when the tomato is poked." checked={settings.petSoundsEnabled} onChange={(value) => props.onUpdate({ petSoundsEnabled: value })} />
       <Toggle label="Hide pet during focus" detail="Use the compact corner timer while working." checked={settings.stealthFocusEnabled} onChange={(value) => props.onUpdate({ stealthFocusEnabled: value })} />
-      <label className="setting-row audio-setting"><span><strong>Focus audio</strong><small>Automatically play during focus sessions.</small></span><input type="checkbox" checked={settings.focusAudioEnabled} onChange={(event) => props.onUpdate({ focusAudioEnabled: event.currentTarget.checked })} /></label>
-      <label className="setting-row audio-options"><span><strong>Soundscape</strong><small>Brown noise or gentle rain.</small></span><select value={settings.focusAudioTrack} onChange={(event) => props.onUpdate({ focusAudioTrack: event.currentTarget.value as AppSettings["focusAudioTrack"] })}><option value="brown_noise">Brown noise</option><option value="gentle_rain">Gentle rain</option></select><input aria-label="Focus audio volume" type="range" min="0" max="1" step="0.05" value={settings.focusAudioVolume} onChange={(event) => props.onUpdate({ focusAudioVolume: Number(event.currentTarget.value) })} /></label>
+      <label className="setting-row audio-setting"><span><strong>Ambient focus sound</strong><small>Play a steady background sound to support concentration during focus sessions.</small></span><input type="checkbox" checked={settings.focusAudioEnabled} onChange={(event) => props.onUpdate({ focusAudioEnabled: event.currentTarget.checked })} /></label>
+      <div className="setting-row audio-options"><span><strong>Focus soundscape</strong><small>Choose brown noise or gentle rain.</small></span><select aria-label="Focus soundscape" value={settings.focusAudioTrack} onChange={(event) => props.onUpdate({ focusAudioTrack: event.currentTarget.value as AppSettings["focusAudioTrack"] })}><option value="brown_noise">Brown noise</option><option value="gentle_rain">Gentle rain</option></select><label className="audio-volume-control"><span>Volume</span><output>{Math.round(settings.focusAudioVolume * 100)}%</output><input aria-label="Ambient focus sound volume" type="range" min="0" max="1" step="0.01" value={settings.focusAudioVolume} onChange={(event) => props.onUpdate({ focusAudioVolume: Number(event.currentTarget.value) })} /></label></div>
     </section>
-    <section className="settings-band data-band"><div><p className="eyebrow">Preferences backup</p><h2>Move settings between devices</h2><small>XP, Seeds, sessions, and progression are not included.</small></div><div className="data-actions"><button onClick={props.onExport}>Copy preferences</button><button disabled={timerActive} onClick={props.onImport}>Import preferences</button></div></section>
+    <section className="settings-band data-band"><div><p className="eyebrow">Preferences backup</p><h2>Move settings between devices</h2><small>XP, Seeds, sessions, and progression are not included.</small></div><div className="data-actions"><button onClick={props.onExport}>Export preferences</button><button disabled={timerActive} onClick={props.onImport}>Import preferences</button></div></section>
   </>;
 }
 

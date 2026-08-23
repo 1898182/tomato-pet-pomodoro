@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import type { AppSettings, TimerSnapshot } from "../../shared/types";
 
 const FADE_DURATION_MS = 220;
+const MAX_PLAYBACK_VOLUME = 0.4;
 
 export function useFocusAudio(state: TimerSnapshot | null, settings: AppSettings | null): void {
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -23,14 +24,14 @@ export function useFocusAudio(state: TimerSnapshot | null, settings: AppSettings
       audioRef.current.preload = "auto";
     }
 
-    audioRef.current.volume = settings.focusAudioVolume;
+    audioRef.current.volume = toPlaybackVolume(settings.focusAudioVolume);
     void audioRef.current.play().catch((error: unknown) => {
       console.warn("Focus audio could not start.", error);
     });
   }, [settings?.focusAudioEnabled, settings?.focusAudioTrack, state?.phase]);
 
   useEffect(() => {
-    if (audioRef.current && settings) audioRef.current.volume = settings.focusAudioVolume;
+    if (audioRef.current && settings) audioRef.current.volume = toPlaybackVolume(settings.focusAudioVolume);
   }, [settings?.focusAudioVolume]);
 
   useEffect(() => () => {
@@ -38,6 +39,11 @@ export function useFocusAudio(state: TimerSnapshot | null, settings: AppSettings
     audioRef.current?.pause();
     audioRef.current = null;
   }, []);
+}
+
+export function toPlaybackVolume(settingVolume: number): number {
+  const normalized = Math.min(1, Math.max(0, settingVolume));
+  return normalized * normalized * MAX_PLAYBACK_VOLUME;
 }
 
 function getAudioSource(track: AppSettings["focusAudioTrack"]): string {
