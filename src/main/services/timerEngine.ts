@@ -60,12 +60,6 @@ export class TimerEngine extends EventEmitter {
     return this.snapshot;
   }
 
-  updateTask(text: string) {
-    this.snapshot = { ...this.snapshot, taskText: text.trim().slice(0, 80) };
-    this.emitAndPersist();
-    return this.snapshot;
-  }
-
   petCurrentBreak(): Omit<PettingResult, "summary"> {
     if ((this.snapshot.phase !== "short_break" && this.snapshot.phase !== "long_break") || !this.snapshot.activeSessionId) {
       return { awardedXp: 0, alreadyAwarded: false };
@@ -113,7 +107,7 @@ export class TimerEngine extends EventEmitter {
 
   stop() {
     if (isActive(this.snapshot.phase)) this.finishActiveSegment(false, true, "manual_stop", new Date());
-    this.snapshot = createIdleSnapshot(this.snapshot.preset, this.snapshot.cycleCount, this.snapshot.taskText, this.database.getStreakDays());
+    this.snapshot = createIdleSnapshot(this.snapshot.preset, this.snapshot.cycleCount, this.database.getStreakDays());
     this.emitAndPersist();
     return this.snapshot;
   }
@@ -125,7 +119,7 @@ export class TimerEngine extends EventEmitter {
   private assertPresetCanChange() { if (this.snapshot.phase !== "idle") throw new Error("Stop the current timer before changing session rhythm."); }
   private applyPreset(preset: TimerPreset) {
     const readyForNextPhase = this.snapshot.readyForNextPhase;
-    this.snapshot = { ...createIdleSnapshot(preset, this.snapshot.cycleCount, this.snapshot.taskText, this.snapshot.streakDays,
+    this.snapshot = { ...createIdleSnapshot(preset, this.snapshot.cycleCount, this.snapshot.streakDays,
       this.snapshot.focusChainMinutes, this.snapshot.focusRewardRemainderSeconds), readyForNextPhase };
     this.emitAndPersist();
   }
@@ -164,7 +158,7 @@ export class TimerEngine extends EventEmitter {
     this.finishActiveSegment(true, false, `${completedPhase}_completed`, completionTime);
     const cycleCount = completedPhase === "focus" ? this.snapshot.cycleCount + 1 : this.snapshot.cycleCount;
     const readyForNextPhase = getNextPhase(completedPhase, cycleCount, this.snapshot.preset);
-    this.snapshot = createIdleSnapshot(this.snapshot.preset, cycleCount, this.snapshot.taskText, this.database.getStreakDays(),
+    this.snapshot = createIdleSnapshot(this.snapshot.preset, cycleCount, this.database.getStreakDays(),
       this.snapshot.focusChainMinutes, this.snapshot.focusRewardRemainderSeconds);
     this.emit("phase-complete", { completedPhase, readyForNextPhase });
     if (this.database.getSettings().autoStartNextSession) { this.startPhase(readyForNextPhase); return; }
@@ -182,7 +176,7 @@ export class TimerEngine extends EventEmitter {
     const focusedSeconds = phase === "focus" ? actualSeconds : 0;
     if (phase === "focus") this.awardCompletedFocusMinutes(focusedSeconds, endedAt);
     this.database.addSession({ id: sessionId, phase, startedAt, endedAt: endedAt.toISOString(), plannedSeconds, actualSeconds,
-      focusedSeconds, completed, interrupted, taskText: this.snapshot.taskText });
+      focusedSeconds, completed, interrupted });
 
     const streakDays = this.database.getStreakDays(endedAt);
     const streakMultiplier = getStreakMultiplier(streakDays);
@@ -261,13 +255,13 @@ export class TimerEngine extends EventEmitter {
   private emitAndPersist(force = true) { this.database.saveTimerState(this.snapshot); if (force || this.snapshot.phase !== "idle") this.emit("state", this.snapshot); }
 }
 
-function createIdleSnapshot(preset: TimerPreset, cycleCount = 0, taskText = "", streakDays = 0, focusChainMinutes = 0, focusRewardRemainderSeconds = 0): TimerSnapshot {
+function createIdleSnapshot(preset: TimerPreset, cycleCount = 0, streakDays = 0, focusChainMinutes = 0, focusRewardRemainderSeconds = 0): TimerSnapshot {
   const streakMultiplier = getStreakMultiplier(streakDays);
   const currentMultiplier = calculateFocusChainMultiplier(focusChainMinutes);
   return { phase: "idle", activePhase: null, pausedFromPhase: null, petState: "sleeping", preset, startedAt: null, endsAt: null,
     pausedAt: null, remainingSeconds: preset.focusMinutes * 60, accumulatedFocusSeconds: 0, awardedFocusMinutes: 0, focusRewardRemainderSeconds,
     focusChainMinutes, currentMultiplier, cycleCount,
-    readyForNextPhase: null, activeSessionId: null, taskText, breakPromptId: null, pettingBonusAwarded: false,
+    readyForNextPhase: null, activeSessionId: null, breakPromptId: null, pettingBonusAwarded: false,
     streakDays, streakMultiplier, effectiveMultiplier: currentMultiplier * streakMultiplier };
 }
 

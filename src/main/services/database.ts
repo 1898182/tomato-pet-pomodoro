@@ -191,12 +191,12 @@ export class DatabaseService {
     return finalSeeds;
   }
 
-  addSession(input: { id: string; phase: string; startedAt: string; endedAt: string; plannedSeconds: number; actualSeconds: number; focusedSeconds: number; completed: boolean; interrupted: boolean; taskText: string }) {
+  addSession(input: { id: string; phase: string; startedAt: string; endedAt: string; plannedSeconds: number; actualSeconds: number; focusedSeconds: number; completed: boolean; interrupted: boolean }) {
     this.run(
-      `INSERT OR REPLACE INTO sessions(id, phase, started_at, ended_at, planned_seconds, actual_seconds, focused_seconds, completed, interrupted, xp_earned, seeds_earned, task_text)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE((SELECT xp_earned FROM sessions WHERE id = ?), 0), COALESCE((SELECT seeds_earned FROM sessions WHERE id = ?), 0), ?)`,
+      `INSERT OR REPLACE INTO sessions(id, phase, started_at, ended_at, planned_seconds, actual_seconds, focused_seconds, completed, interrupted, xp_earned, seeds_earned)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE((SELECT xp_earned FROM sessions WHERE id = ?), 0), COALESCE((SELECT seeds_earned FROM sessions WHERE id = ?), 0))`,
       [input.id, input.phase, input.startedAt, input.endedAt, input.plannedSeconds, input.actualSeconds, input.focusedSeconds,
-        input.completed ? 1 : 0, input.interrupted ? 1 : 0, input.id, input.id, input.taskText]
+        input.completed ? 1 : 0, input.interrupted ? 1 : 0, input.id, input.id]
     );
     this.flush();
   }
@@ -233,12 +233,12 @@ export class DatabaseService {
   saveTimerState(snapshot: TimerSnapshot) {
     this.run(
       `INSERT OR REPLACE INTO timer_state(id, phase, active_phase, paused_from_phase, started_at, ends_at, paused_at, remaining_seconds,
-       accumulated_focus_seconds, awarded_focus_minutes, focus_reward_remainder_seconds, focus_chain_minutes, current_multiplier, cycle_count, ready_for_next_phase, preset_id, active_session_id, task_text, break_prompt_id, petting_bonus_awarded)
-       VALUES ('singleton', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       accumulated_focus_seconds, awarded_focus_minutes, focus_reward_remainder_seconds, focus_chain_minutes, current_multiplier, cycle_count, ready_for_next_phase, preset_id, active_session_id, break_prompt_id, petting_bonus_awarded)
+       VALUES ('singleton', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [snapshot.phase, snapshot.activePhase, snapshot.pausedFromPhase, snapshot.startedAt, snapshot.endsAt, snapshot.pausedAt,
         snapshot.remainingSeconds, snapshot.accumulatedFocusSeconds, snapshot.awardedFocusMinutes, snapshot.focusRewardRemainderSeconds, snapshot.focusChainMinutes,
         snapshot.currentMultiplier, snapshot.cycleCount, snapshot.readyForNextPhase,
-        snapshot.preset.id, snapshot.activeSessionId, snapshot.taskText, snapshot.breakPromptId, snapshot.pettingBonusAwarded ? 1 : 0]
+        snapshot.preset.id, snapshot.activeSessionId, snapshot.breakPromptId, snapshot.pettingBonusAwarded ? 1 : 0]
     );
     this.flush();
   }
@@ -258,7 +258,7 @@ export class DatabaseService {
       focusChainMinutes: row.focus_chain_minutes,
       currentMultiplier: row.current_multiplier, cycleCount: row.cycle_count,
       readyForNextPhase: row.ready_for_next_phase as TimerSnapshot["readyForNextPhase"], activeSessionId: row.active_session_id,
-      taskText: row.task_text ?? "", breakPromptId: row.break_prompt_id, pettingBonusAwarded: row.petting_bonus_awarded === 1,
+      breakPromptId: row.break_prompt_id, pettingBonusAwarded: row.petting_bonus_awarded === 1,
       streakDays, streakMultiplier, effectiveMultiplier: row.current_multiplier * streakMultiplier
     };
   }
@@ -360,14 +360,12 @@ export class DatabaseService {
     `);
     this.ensureColumn("player_profile", "seed_balance", "INTEGER NOT NULL DEFAULT 0");
     this.ensureColumn("timer_state", "active_session_id", "TEXT");
-    this.ensureColumn("timer_state", "task_text", "TEXT NOT NULL DEFAULT ''");
     this.ensureColumn("timer_state", "break_prompt_id", "TEXT");
     this.ensureColumn("timer_state", "petting_bonus_awarded", "INTEGER NOT NULL DEFAULT 0");
     this.ensureColumn("timer_state", "awarded_focus_minutes", "INTEGER NOT NULL DEFAULT 0");
     this.ensureColumn("timer_state", "focus_reward_remainder_seconds", "INTEGER NOT NULL DEFAULT 0");
     this.ensureColumn("timer_state", "focus_chain_minutes", "INTEGER NOT NULL DEFAULT 0");
     this.ensureColumn("sessions", "seeds_earned", "INTEGER NOT NULL DEFAULT 0");
-    this.ensureColumn("sessions", "task_text", "TEXT NOT NULL DEFAULT ''");
     this.ensureColumn("timer_presets", "kind", "TEXT NOT NULL DEFAULT 'custom'");
     this.ensureColumn("timer_presets", "is_hidden", "INTEGER NOT NULL DEFAULT 0");
     this.ensureColumn("timer_presets", "sort_order", "INTEGER NOT NULL DEFAULT 100");
@@ -405,7 +403,7 @@ export class DatabaseService {
 
 type TimerPresetRow = { id: string; name: string; focus_minutes: number; short_break_minutes: number; long_break_minutes: number; long_break_every: number; is_default: number; kind: string; is_hidden: number; sort_order: number; created_at: string };
 type PlayerProfileRow = { id: string; active_pet_id: string; total_xp: number; current_level: number; seed_balance: number; created_at: string; updated_at: string };
-type TimerStateRow = { phase: string; active_phase: string | null; paused_from_phase: string | null; started_at: string | null; ends_at: string | null; paused_at: string | null; remaining_seconds: number; accumulated_focus_seconds: number; awarded_focus_minutes: number; focus_reward_remainder_seconds: number; focus_chain_minutes: number; current_multiplier: number; cycle_count: number; ready_for_next_phase: string | null; active_session_id: string | null; task_text: string; break_prompt_id: string | null; petting_bonus_awarded: number };
+type TimerStateRow = { phase: string; active_phase: string | null; paused_from_phase: string | null; started_at: string | null; ends_at: string | null; paused_at: string | null; remaining_seconds: number; accumulated_focus_seconds: number; awarded_focus_minutes: number; focus_reward_remainder_seconds: number; focus_chain_minutes: number; current_multiplier: number; cycle_count: number; ready_for_next_phase: string | null; active_session_id: string | null; break_prompt_id: string | null; petting_bonus_awarded: number };
 type SessionAnalyticsRow = { ended_at: string; phase: string; focused_seconds: number; completed: number };
 
 function mapPreset(row: TimerPresetRow): TimerPreset { return { id: row.id, name: row.name, focusMinutes: row.focus_minutes, shortBreakMinutes: row.short_break_minutes, longBreakMinutes: row.long_break_minutes, longBreakEvery: row.long_break_every, isDefault: row.is_default === 1, kind: row.kind === "built_in" ? "built_in" : "custom" }; }

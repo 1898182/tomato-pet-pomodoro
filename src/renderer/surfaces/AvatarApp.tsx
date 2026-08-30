@@ -1,6 +1,6 @@
 import "pixi.js/unsafe-eval";
 import { Application, Assets, Graphics, Rectangle, Sprite, Texture } from "pixi.js";
-import { Pause, Power, Square, Volume2, VolumeX } from "lucide-react";
+import { Pause, Play, Settings, Square, Volume2, VolumeX } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { PetManifest } from "../../shared/petManifest";
 import { validatePetManifest } from "../../shared/petManifest";
@@ -59,7 +59,6 @@ function FullAvatar({ state, settings, rewards }: { state: TimerSnapshot; settin
   const petStateRef = useRef<PetState>(state.petState);
   const pokeStartedRef = useRef(0);
   const [bubbleOpen, setBubbleOpen] = useState(true);
-  const [controlsOpen, setControlsOpen] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   petStateRef.current = state.petState;
 
@@ -111,9 +110,7 @@ function FullAvatar({ state, settings, rewards }: { state: TimerSnapshot; settin
   const toggleBubbles = useCallback(() => {
     const shouldOpen = !bubbleOpen;
     setBubbleOpen(shouldOpen);
-    setControlsOpen(shouldOpen);
   }, [bubbleOpen]);
-  const toggleControls = useCallback(() => setControlsOpen((value) => !value), []);
   useEffect(() => { window.tomatoPet.avatar.setExpanded(bubbleOpen); }, [bubbleOpen]);
   usePetGesture(dragTargetRef, poke, toggleBubbles);
   useInteractiveRegions(surfaceRef);
@@ -124,59 +121,42 @@ function FullAvatar({ state, settings, rewards }: { state: TimerSnapshot; settin
       <div ref={containerRef} className="avatar-canvas" />
       <div ref={dragTargetRef} className="avatar-drag-target" data-avatar-interactive aria-label="Tomato pet" />
       {loadError && <p className="avatar-error" data-avatar-interactive>Pet failed to load<br /><small>{loadError}</small></p>}
-      {bubbleOpen && <TimerBubble state={state} settings={settings} controlsOpen={controlsOpen} onToggleControls={toggleControls} />}
+      {bubbleOpen && <TimerBubble state={state} />}
+      <button type="button" className="avatar-settings-button" data-avatar-interactive title="Open settings" aria-label="Open settings" onClick={() => window.tomatoPet.settings.open()}><Settings aria-hidden="true" /></button>
     </main>
   );
 }
 
-function TimerBubble({ state, settings, controlsOpen, onToggleControls }: { state: TimerSnapshot; settings: AppSettings; controlsOpen: boolean; onToggleControls: () => void }) {
+function TimerBubble({ state }: { state: TimerSnapshot }) {
   const bubbleRef = useRef<HTMLElement | null>(null);
   const promptRef = useRef<HTMLElement | null>(null);
-  const actionsRef = useRef<HTMLElement | null>(null);
-  const [task, setTask] = useState(state.taskText);
-  useEffect(() => setTask(state.taskText), [state.taskText]);
   const ready = state.readyForNextPhase;
   const displaySeconds = ready ? getPhaseDurationSeconds(state.preset, ready) : state.remainingSeconds;
   const prompt = state.phase === "short_break" && state.breakPromptId ? BREAK_PROMPTS[state.breakPromptId as keyof typeof BREAK_PROMPTS] : null;
-  function saveTask() { if (task.trim() !== state.taskText) window.tomatoPet.timer.updateTask(task); }
-  useWindowDragGesture(bubbleRef, onToggleControls);
+  const canPause = state.phase === "focus" || state.phase === "short_break" || state.phase === "long_break";
+  const canPlay = state.phase === "idle" || state.phase === "paused";
+  const canStop = state.phase !== "idle";
+  useWindowDragGesture(bubbleRef, ignoreBubbleClick);
   useWindowDragGesture(promptRef, ignoreBubbleClick, Boolean(prompt));
-  useWindowDragGesture(actionsRef, ignoreBubbleClick);
   return (
     <div className="bubble-stack">
       {prompt && <section ref={promptRef} className="break-prompt-bubble" data-avatar-interactive aria-label="Short break suggestion">
         <p>{prompt}</p>
       </section>}
-      <section ref={bubbleRef} className="timer-bubble" data-avatar-interactive aria-label="Timer; click for actions or drag to move">
+      <section ref={bubbleRef} className="timer-bubble" data-avatar-interactive aria-label="Timer; drag to move">
         <div className="bubble-summary">
           <p className="bubble-label">{labelForPhase(state)}</p>
           <strong className="bubble-time">{formatRemaining(displaySeconds)}</strong>
           <span className="multiplier-pill" title={`Focus chain ${state.currentMultiplier.toFixed(2)}x × streak ${state.streakMultiplier.toFixed(2)}x`}>
             {state.effectiveMultiplier.toFixed(2)}x XP
           </span>
+          <div className="bubble-actions" aria-label="Timer actions">
+            <button type="button" className="bubble-action-icon" disabled={!canPlay} title={playActionLabel(state)} aria-label={playActionLabel(state)} onClick={() => startPrimaryTimer(state)}><Play aria-hidden="true" /></button>
+            <button type="button" className="bubble-action-icon" disabled={!canPause} title="Pause timer" aria-label="Pause timer" onClick={() => window.tomatoPet.timer.pause()}><Pause aria-hidden="true" /></button>
+            <button type="button" className="bubble-action-icon" disabled={!canStop} title="Stop timer" aria-label="Stop timer" onClick={() => window.tomatoPet.timer.stop()}><Square aria-hidden="true" /></button>
+          </div>
         </div>
-        <label className="task-anchor" onClick={(event) => event.stopPropagation()}>
-          <span>Working on:</span>
-          <input value={task} maxLength={80} placeholder="Add a focus task" onChange={(event) => setTask(event.currentTarget.value)} onBlur={saveTask}
-            onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); if (event.key === "Escape") { setTask(state.taskText); event.currentTarget.blur(); } }} />
-        </label>
       </section>
-      <div className={`bubble-controls-shell${controlsOpen ? " is-open" : ""}`} data-avatar-interactive={controlsOpen ? "" : undefined} aria-hidden={!controlsOpen}>
-        <div className="bubble-controls-clip">
-          <section ref={actionsRef} className="action-bubble" aria-label="Timer actions">
-            <div className="bubble-actions" onClick={(event) => event.stopPropagation()}>
-              {state.phase === "idle" && !ready && <button tabIndex={controlsOpen ? 0 : -1} onClick={() => window.tomatoPet.timer.startFocus()}>Start</button>}
-              {ready && <button tabIndex={controlsOpen ? 0 : -1} onClick={() => startReadyPhase(ready)}>Start {ready === "focus" ? "focus" : "break"}</button>}
-              {(state.phase === "focus" || state.phase === "short_break" || state.phase === "long_break") && <button tabIndex={controlsOpen ? 0 : -1} onClick={() => window.tomatoPet.timer.pause()}>Pause</button>}
-              {state.phase === "paused" && <button tabIndex={controlsOpen ? 0 : -1} onClick={() => window.tomatoPet.timer.resume()}>Resume</button>}
-              {state.phase !== "idle" && <button tabIndex={controlsOpen ? 0 : -1} onClick={() => window.tomatoPet.timer.stop()}>Stop</button>}
-              <button tabIndex={controlsOpen ? 0 : -1} title="Toggle ambient focus sound" onClick={() => window.tomatoPet.settings.update({ focusAudioEnabled: !settings.focusAudioEnabled })}>{settings.focusAudioEnabled ? "Mute sound" : "Ambient sound"}</button>
-              <button tabIndex={controlsOpen ? 0 : -1} onClick={() => window.tomatoPet.settings.open()}>Settings</button>
-              <button type="button" className="action-icon-button" tabIndex={controlsOpen ? 0 : -1} title="Quit Tomato Pet" aria-label="Quit Tomato Pet" onClick={() => window.tomatoPet.app.quit()}><Power aria-hidden="true" /></button>
-            </div>
-          </section>
-        </div>
-      </div>
     </div>
   );
 }
@@ -230,6 +210,8 @@ function playPopSound() {
 }
 
 function startReadyPhase(phase: TimerSnapshot["readyForNextPhase"]) { if (phase === "focus") window.tomatoPet.timer.startFocus(); else if (phase) window.tomatoPet.timer.startBreak(phase); }
+function startPrimaryTimer(state: TimerSnapshot) { if (state.phase === "paused") window.tomatoPet.timer.resume(); else if (state.readyForNextPhase) startReadyPhase(state.readyForNextPhase); else window.tomatoPet.timer.startFocus(); }
+function playActionLabel(state: TimerSnapshot) { return state.phase === "paused" ? "Resume timer" : state.readyForNextPhase ? `Start ${state.readyForNextPhase === "focus" ? "focus" : "break"}` : "Start focus timer"; }
 
 function ignoreBubbleClick() {}
 

@@ -49,7 +49,7 @@ button:disabled {
 
 .avatar-surface {
   position: relative;
-  width: 400px;
+  width: 430px;
   height: 243px;
   overflow: hidden;
   background: transparent;
@@ -138,16 +138,15 @@ button:disabled {
   position: absolute;
   z-index: 2;
   top: 10px;
-  left: 220px;
-  width: 180px;
+  left: 200px;
+  width: 220px;
   display: grid;
   gap: 6px;
   animation: bubble-float 4.8s ease-in-out infinite;
 }
 
 .timer-bubble,
-.break-prompt-bubble,
-.action-bubble {
+.break-prompt-bubble {
   position: relative;
   padding: 10px 12px;
   border: 1px solid rgba(80, 34, 25, 0.18);
@@ -159,20 +158,16 @@ button:disabled {
 }
 
 .timer-bubble:active,
-.break-prompt-bubble:active,
-.action-bubble:active {
+.break-prompt-bubble:active {
   cursor: grabbing;
 }
 
-.timer-bubble button,
-.timer-bubble input,
-.action-bubble button {
+.timer-bubble button {
   cursor: auto;
   touch-action: auto;
 }
 
-.timer-bubble button,
-.action-bubble button {
+.timer-bubble button {
   cursor: pointer;
 }
 
@@ -219,8 +214,12 @@ button:disabled {
 .bubble-summary {
   display: grid;
   grid-template-columns: 1fr auto;
-  align-items: end;
+  grid-template-areas:
+    "label multiplier"
+    "time actions";
+  align-items: center;
   column-gap: 8px;
+  row-gap: 6px;
 }
 
 .bubble-label,
@@ -233,7 +232,7 @@ button:disabled {
 }
 
 .bubble-label {
-  grid-column: 1 / -1;
+  grid-area: label;
 }
 
 .bubble-xp {
@@ -242,6 +241,7 @@ button:disabled {
 }
 
 .multiplier-pill {
+  grid-area: multiplier;
   align-self: center;
   justify-self: end;
   padding: 3px 6px;
@@ -253,92 +253,60 @@ button:disabled {
   font-weight: 850;
 }
 
-.task-anchor {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: center;
-  gap: 4px;
-  margin-top: 7px;
-  color: #80675d;
-  font-size: 10px;
-  font-weight: 750;
-}
-
-.task-anchor input {
-  min-width: 0;
-  padding: 2px;
-  border: 0;
-  border-bottom: 1px solid rgba(80, 34, 25, 0.18);
-  outline: none;
-  background: transparent;
-  color: #321d1a;
-  font-size: 11px;
-}
-
-.task-anchor input:focus {
-  border-color: #4f8a45;
-}
-
 .bubble-time {
+  grid-area: time;
   display: block;
   font-size: 29px;
   line-height: 1;
 }
 
 .bubble-actions {
+  grid-area: actions;
   display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
+  justify-content: flex-end;
+  gap: 4px;
   margin: 0;
 }
 
-.bubble-controls-shell {
+.bubble-action-icon,
+.avatar-settings-button {
   display: grid;
-  grid-template-rows: 0fr;
-  opacity: 0;
-  transform: translateY(-7px);
-  visibility: hidden;
-  pointer-events: none;
-  transition: grid-template-rows 240ms ease, opacity 180ms ease, transform 240ms ease, visibility 0s linear 240ms;
+  place-items: center;
+  padding: 0;
+  box-shadow: none;
 }
 
-.bubble-controls-shell.is-open {
-  grid-template-rows: 1fr;
-  opacity: 1;
-  transform: translateY(0);
-  visibility: visible;
-  pointer-events: auto;
-  transition-delay: 0s;
-}
-
-.bubble-controls-clip {
-  min-height: 0;
-  overflow: hidden;
-}
-
-.action-bubble {
-  padding: 8px;
-  box-shadow: 0 8px 18px rgba(67, 23, 18, 0.14);
-}
-
-.bubble-actions button {
-  flex: 1 1 66px;
-  min-width: 0;
-  min-height: 28px;
-  padding: 5px 6px;
-  font-size: 10.5px;
-  line-height: 1.15;
-}
-
-.bubble-actions .action-icon-button {
-  flex: 0 0 28px;
+.bubble-action-icon {
   width: 28px;
-  padding: 5px;
+  height: 28px;
+  border-radius: 7px;
 }
 
-.action-icon-button svg {
+.bubble-action-icon svg,
+.avatar-settings-button svg {
   width: 14px;
   height: 14px;
+}
+
+.avatar-settings-button {
+  position: absolute;
+  z-index: 3;
+  top: 219px;
+  left: calc(132px - 8px);
+  border: 1px solid rgba(80, 34, 25, 0.18);
+  border-radius: 50%;
+  background: #fffaf0;
+  color: #6e5148;
+}
+
+.avatar-settings-button:hover {
+  background: #eef5e9;
+  color: #366735;
+}
+
+.avatar-settings-button svg {
+  width: 17px;
+  height: 17px;
 }
 
 @keyframes bubble-float {
@@ -430,7 +398,6 @@ button:disabled {
     animation: none;
   }
 
-  .bubble-controls-shell,
   .mini-timer > strong,
   .mini-actions {
     transition: none;
@@ -1192,7 +1159,7 @@ button:disabled {
 
 .stats-metrics {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 12px;
   margin-bottom: 14px;
 }

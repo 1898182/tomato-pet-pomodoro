@@ -33,7 +33,7 @@ let idlePoll: NodeJS.Timeout | null = null;
 const devServerUrl = process.env.VITE_DEV_SERVER_URL ? validateDevServerUrl(process.env.VITE_DEV_SERVER_URL) : undefined;
 const isDev = Boolean(devServerUrl);
 const AVATAR_COLLAPSED_SIZE = { width: 280, height: 280 };
-const AVATAR_EXPANDED_SIZE = { width: 400, height: 243 };
+const AVATAR_EXPANDED_SIZE = { width: 430, height: 243 };
 const AVATAR_MINI_SIZE = { width: 178, height: 48 };
 app.commandLine.appendSwitch("autoplay-policy", "no-user-gesture-required");
 app.setName(APP_NAME);
@@ -220,10 +220,6 @@ function registerIpc() {
   handleTrusted("timer:pause", () => timer.pause());
   handleTrusted("timer:resume", () => timer.resume());
   handleTrusted("timer:stop", () => timer.stop());
-  handleTrusted("timer:update-task", (_event, text: unknown) => {
-    if (typeof text !== "string") throw new Error("Task text must be a string.");
-    return timer.updateTask(text);
-  });
 
   handleTrusted("presets:list", () => database.listPresets());
   handleTrusted("presets:select", (_event, presetId: string) => timer.selectPreset(presetId));

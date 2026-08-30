@@ -16,7 +16,6 @@ const api: ElectronApi = {
     pause: () => ipcRenderer.invoke("timer:pause"),
     resume: () => ipcRenderer.invoke("timer:resume"),
     stop: () => ipcRenderer.invoke("timer:stop"),
-    updateTask: (text) => ipcRenderer.invoke("timer:update-task", text),
     onState: (callback: (snapshot: TimerSnapshot) => void) => {
       const listener = (_event: Electron.IpcRendererEvent, snapshot: TimerSnapshot) => callback(snapshot);
       ipcRenderer.on("timer:state", listener);
