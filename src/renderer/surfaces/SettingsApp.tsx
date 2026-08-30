@@ -132,7 +132,7 @@ export function SettingsApp() {
     {tab === "settings" && <SettingsTab settings={settings} presets={presets} timerActive={timerActive}
       onUpdate={update} onSelectPreset={selectPreset} onCreatePreset={createCustomPreset} onRemovePreset={removePreset} onResetPresets={resetPresets}
       onExport={exportData} onImport={importData} />}
-    {tab === "stats" && <StatsTab summary={summary} analytics={analytics} />}
+    {tab === "stats" && <StatsTab summary={summary} analytics={analytics} timer={timer} />}
     {tab === "faq" && <FAQTab />}
     {quitConfirmationOpen && <QuitConfirmation onCancel={closeQuitConfirmation} onConfirm={() => window.tomatoPet.app.quit()} />}
   </main>;
@@ -178,11 +178,11 @@ function QuitConfirmation({ onCancel, onConfirm }: { onCancel: () => void; onCon
   </div>;
 }
 
-function StatsTab({ summary, analytics }: { summary: ProgressionSummary; analytics: AnalyticsOverview | null }) {
+function StatsTab({ summary, analytics, timer }: { summary: ProgressionSummary; analytics: AnalyticsOverview | null; timer: TimerSnapshot }) {
   if (!analytics) return <section className="settings-section">Loading activity...</section>;
   const maxMinutes = Math.max(1, ...analytics.days.map((day) => day.focusedSeconds / 60));
   return <section className="stats-view">
-    <div className="stats-metrics"><div><small>This week</small><strong>{formatHours(analytics.weekFocusedSeconds)}</strong><span>focused</span></div><div><small>Completed</small><strong>{analytics.weekCompletedSessions}</strong><span>focus sessions</span></div><div><small>Current streak</small><strong>{summary.streakDays}</strong><span>days</span></div></div>
+    <div className="stats-metrics"><div><small>Today</small><strong>{formatFocusDuration(getTodayFocusSeconds(analytics, timer))}</strong><span>focused</span></div><div><small>This week</small><strong>{formatHours(analytics.weekFocusedSeconds)}</strong><span>focused</span></div><div><small>Completed</small><strong>{analytics.weekCompletedSessions}</strong><span>focus sessions</span></div><div><small>Current streak</small><strong>{summary.streakDays}</strong><span>days</span></div></div>
     <div className="cap-grid"><CapMeter label="XP today" value={summary.xpToday} cap={summary.xpDailyCap} /><CapMeter label="Seeds today" value={summary.seedsToday} cap={summary.seedDailyCap} /></div>
     <div className="activity-panel"><div className="section-heading"><div><p className="eyebrow">Last 12 weeks</p><h2>Focus activity</h2></div><small>Darker days contain more focused minutes.</small></div>
       <div className="heatmap" aria-label="12 week focus activity">{analytics.days.map((day) => { const intensity = day.focusedSeconds === 0 ? 0 : Math.min(4, Math.max(1, Math.ceil((day.focusedSeconds / 60) / maxMinutes * 4))); return <span key={day.date} className={`heat-cell intensity-${intensity}`} title={`${day.date}: ${Math.round(day.focusedSeconds / 60)} focused minutes`} />; })}</div>
@@ -199,4 +199,12 @@ function primaryActionLabel(timer: TimerSnapshot): string { if (timer.phase === 
 function startPrimaryTimer(timer: TimerSnapshot): Promise<TimerSnapshot> { if (timer.phase === "paused") return window.tomatoPet.timer.resume(); if (timer.phase === "focus" || timer.phase === "short_break" || timer.phase === "long_break") return window.tomatoPet.timer.pause(); if (timer.readyForNextPhase === "focus" || !timer.readyForNextPhase) return window.tomatoPet.timer.startFocus(); return window.tomatoPet.timer.startBreak(timer.readyForNextPhase); }
 function formatRemaining(totalSeconds: number): string { return `${Math.floor(totalSeconds / 60).toString().padStart(2, "0")}:${Math.floor(totalSeconds % 60).toString().padStart(2, "0")}`; }
 function formatHours(seconds: number): string { const hours = seconds / 3600; return hours < 10 ? `${hours.toFixed(1)}h` : `${Math.round(hours)}h`; }
+export function getTodayFocusSeconds(analytics: AnalyticsOverview | null, timer: TimerSnapshot, now = new Date()): number {
+  const today = localDateKey(now);
+  const completedFocusSeconds = analytics?.days.find((day) => day.date === today)?.focusedSeconds ?? 0;
+  const activeFocusSeconds = timer.phase === "focus" || timer.pausedFromPhase === "focus" ? timer.accumulatedFocusSeconds : 0;
+  return completedFocusSeconds + activeFocusSeconds;
+}
+function formatFocusDuration(totalSeconds: number): string { const totalMinutes = Math.floor(totalSeconds / 60); const hours = Math.floor(totalMinutes / 60); const minutes = totalMinutes % 60; return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`; }
+function localDateKey(date: Date): string { return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`; }
 function errorMessage(error: unknown): string { return error instanceof Error ? error.message : "Could not save"; }

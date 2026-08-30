@@ -53,7 +53,6 @@ export type TimerSnapshot = {
   cycleCount: number;
   readyForNextPhase: ActiveTimerPhase | null;
   activeSessionId: string | null;
-  taskText: string;
   breakPromptId: string | null;
   pettingBonusAwarded: boolean;
   streakDays: number;
@@ -95,7 +94,6 @@ export type SessionRecord = {
   interrupted: boolean;
   xpEarned: number;
   seedsEarned: number;
-  taskText: string;
 };
 
 export type XpLedgerRecord = {
@@ -202,7 +200,6 @@ export type ElectronApi = {
     pause: () => Promise<TimerSnapshot>;
     resume: () => Promise<TimerSnapshot>;
     stop: () => Promise<TimerSnapshot>;
-    updateTask: (text: string) => Promise<TimerSnapshot>;
     onState: (callback: (snapshot: TimerSnapshot) => void) => IpcUnsubscribe;
   };
   presets: {

@@ -62,12 +62,11 @@ The development command compiles the Electron main process, builds the renderer 
 ## Using the App
 
 - Click the pet to poke it. During a break, the first poke also awards 5 XP. Double-click the pet to show or hide the timer bubble.
-- Click the timer bubble to show or hide the separate action bubble beneath it. Short-break suggestions appear in their own bubble above the timer.
+- Use the Play, Pause, and Stop icons in the timer bubble to control a session. Short-break suggestions appear in their own bubble above the timer.
 - Drag any non-interactive part of the prompt, timer, or action bubble to reposition the full floating window.
 - Drag any non-button area of the floating window to reposition it. The main process keeps it inside the nearest display's usable bounds.
-- Open **Settings** from the timer bubble or tray menu.
+- Open **Settings** from the gear below the pet or the tray menu.
 - Use **Quit Tomato Pet** at the bottom of Settings to exit the floating pet and tray process completely.
-- Add the current task to the bubble's **Working on** line so it remains visible across sessions.
 - The tray menu can start, pause, resume, and stop sessions even when the pet is hidden behind another window.
 - After a session completes, the app waits for confirmation before starting the suggested focus or break phase.
 

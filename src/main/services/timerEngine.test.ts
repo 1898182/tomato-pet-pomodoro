@@ -340,16 +340,15 @@ describe("TimerEngine", () => {
     expect(() => engine.startFocus()).toThrow(/current timer/);
   });
 
-  it("preserves break petting and task state across pause and resume", () => {
+  it("preserves break petting state across pause and resume", () => {
     const database = createDatabase(false);
     const engine = new TimerEngine(database as unknown as DatabaseService);
-    engine.updateTask("API integration");
     engine.startBreak("short_break");
     engine.petCurrentBreak();
     engine.pause();
     engine.resume();
 
-    expect(engine.getState()).toMatchObject({ taskText: "API integration", pettingBonusAwarded: true });
+    expect(engine.getState()).toMatchObject({ pettingBonusAwarded: true });
     expect(engine.petCurrentBreak()).toMatchObject({ awardedXp: 0, alreadyAwarded: true });
   });
 });
