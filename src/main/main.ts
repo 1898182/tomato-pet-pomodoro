@@ -511,6 +511,11 @@ function getApplicationIconPath(): string {
 }
 
 function applyLaunchAtStartup(enabled: boolean) {
+  if (!app.isPackaged) {
+    app.setLoginItemSettings({ openAtLogin: false });
+    return;
+  }
+
   app.setLoginItemSettings({
     openAtLogin: enabled,
     openAsHidden: false
